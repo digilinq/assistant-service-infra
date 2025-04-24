@@ -6,22 +6,35 @@ on:
   pull_request:
     branches:
       - main
-jobs:
+
+#Special permissions required for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:  
   plan:
+    name: Plan Terraform
     runs-on: ubuntu-latest
-    steps:
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    environment: production
+    defaults:
+      run:
+        shell: bash
+
+    steps:      
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.1.7
-
-      - name: Set up Azure credentials
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Initialize Terraform
         run: terraform init
@@ -30,8 +43,8 @@ jobs:
         run: terraform fmt -check  
 
       - name: Validate Terraform
-        run: terraform validate  
+        run: terraform validate
 
       - name: Plan Terraform
-        run: terraform plan -out=tfplan
+        run: terraform plan -input=false -out=tfplan
 
